@@ -36,13 +36,53 @@ void grid::paintEvent(QPaintEvent *)
         }
     }
 
-            for(auto const& p: pointsList)
+
+
+    if(polygon_clip)
+        {
+           std::list<QPoint> p_list;
+           std::list<QPoint> rect_list;
+           dda_for_transform(rect_list,QLine(clip_frame.bottomLeft(),clip_frame.topLeft()));
+           dda_for_transform(rect_list,QLine(clip_frame.topLeft(),clip_frame.topRight()));
+           dda_for_transform(rect_list,QLine(clip_frame.topRight(),clip_frame.bottomRight()));
+           dda_for_transform(rect_list,QLine(clip_frame.bottomLeft(),clip_frame.bottomRight()));
+
+           for(QLine l: polygon_lines)
+               dda_for_transform(p_list,l);
+
+           for(auto const& p:rect_list)
            {
-               QBrush brush = QBrush(p.second);
-    //         QTransform transform = QTransform::fromScale(1, 2);
-//               QPoint newP = p.first * transform;
-               setPixel(p.first.x(), p.first.y(), painter, brush);
+               QBrush brush = QBrush(Qt::darkGreen);
+               setPixel(p.x(), p.y(), painter, brush);
            }
+
+           for(auto const& p:p_list)
+           {
+               QBrush brush = QBrush(Qt::white);
+               setPixel(p.x(), p.y(), painter, brush);
+           }
+        }
+
+        else if(line_clip)
+        {
+          for(auto const& p:line_clipping_points)
+            {
+              QBrush brush = QBrush(Qt::white);
+              setPixel(p.x(), p.y(), painter, brush);
+            }
+
+
+        }
+    else
+    {
+        for(auto const& p: pointsList)
+        {
+            QBrush brush = QBrush(p.second);
+            //         QTransform transform = QTransform::fromScale(1, 2);
+            //               QPoint newP = p.first * transform;
+            setPixel(p.first.x(), p.first.y(), painter, brush);
+        }
+    }
 
 
 
@@ -88,7 +128,8 @@ void grid::setAlgo(const QString &arg1){
 }
 void grid::addPolygon(list<QPoint> polygon)
 {
-    polygons.push_front(polygon);
+//    polygons.push_front(polygon);
+    transformations = polygon;
 }
 void delay(int msecs)
 {
@@ -124,6 +165,12 @@ void grid::clear()
     pointsList.clear();
     lineList.clear();
     polygons.clear();
+    line_clipping_points.clear();
+    transformations.clear();
+    polygon_lines.clear();
+    clip_frame = QRect();
+    polygon_clip = false;
+    line_clip = false;
     update();
 }
 
@@ -182,7 +229,26 @@ void grid::dda(QLine const&l, list<QPoint>& p) const
     }
 }
 
+void grid::dda_for_transform(std::list<QPoint>& p_list,QLine const& l)
+{
+    int dx = l.p2().x() - l.p1().x();
+    int dy = l.p2().y() - l.p1().y();
 
+    int steps = std::max(abs(dx), abs(dy));
+
+    double xinc = dx / (double) steps;
+    double yinc = dy / (double) steps;
+
+
+    double x = l.p1().x();
+    double y = l.p1().y();
+    for (int i = 0; i <= steps; i++)
+    {
+        p_list.push_back(QPoint(x,y));
+        x += xinc;
+        y += yinc;
+    }
+}
 
 void grid:: bresenham(int x1, int y1, int x2, int y2 )
 {

@@ -29,13 +29,11 @@ void MainWindow::on_show_grid_clicked(){
 void MainWindow::on_Draw_clicked(){
     if(!lastLine.isNull())
     {
-        QString a  = ui->widget->getAlgo();
-        if(a=="DDA_Line"){
+//        QString a  = ui->widget->getAlgo();
+
             ui->widget->dda(lastLine);
-        }
-        else{
-            ui->widget->bresenham(lastLine.p1().x(), lastLine.p1().y(), lastLine.p2().x(), lastLine.p2().y());
-        }
+            clip_lines.push_back(lastLine);
+
     }
 
 }
@@ -71,6 +69,8 @@ void MainWindow::on_gridsize_valueChanged(int gap)
 
 void MainWindow::on_pushButton_pressed()
 {
+    poly.clear();
+    clip_lines.clear();
     ui->widget->clear();
 }
 
