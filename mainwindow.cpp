@@ -112,3 +112,15 @@ void MainWindow::on_clip_window_clicked()
     ui->widget->clip_frame = QRect( QPoint(lastClicked.x(), lastClicked.y()+h), QPoint(lastClicked.x()+w, lastClicked.y()));
 }
 
+
+void MainWindow::on_Line_Clipping_clicked()
+{
+    ui->widget->clip_lines(clip_lines);
+}
+
+
+void MainWindow::on_Polygon_Clipping_clicked()
+{
+    ui->widget->polygon_clipping();
+}
+

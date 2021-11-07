@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <list>
 
-using namespace std;
+//using namespace std;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -20,35 +20,28 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QPoint lastClicked;
     QLine lastLine;
-    bool isDrawingPolygon = false;
-    bool transformation = false;
     std::list<QLine> clip_lines;
-    list<QPoint> poly;
+    QColor lastClickedColor;
+    bool isTransformation = false;
+    std::list<QPoint> transformation;
+
 public slots:
     void showMousePosition(QPoint& pos);
-    void showMousePressed(QPoint& pos);
-    void showExTime(double& time);
+    void showMousePressed(QPoint& pos, QColor);
+    void setTime(int time);
 private slots:
     void on_show_axes_clicked();
-
     void on_show_grid_clicked();
-
     void on_Draw_clicked();
-
-//    void on_set_point1_clicked();
-
-//    void on_set_point2_clicked();
-
     void on_gridsize_valueChanged(int arg1);
     void on_pushButton_pressed();
-    void on_comboBox_currentTextChanged(const QString &arg1);
-    void on_polygon_clicked();
+    void on_line_algorithm_currentIndexChanged(int index);
 
+    void on_Transformation_polygon_clicked();  
 
-    void on_clip_window_clicked();
     void on_Line_Clipping_clicked();
     void on_Polygon_Clipping_clicked();
+    void on_draw_rectangle_clicked();
 };
 #endif // MAINWINDOW_H

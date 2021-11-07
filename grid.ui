@@ -376,6 +376,42 @@
      <string>Set clipping window</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="Line_Clipping">
+    <property name="geometry">
+     <rect>
+      <x>1150</x>
+      <y>470</y>
+      <width>131</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Line Clipping</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="Polygon_Clipping">
+    <property name="geometry">
+     <rect>
+      <x>1150</x>
+      <y>520</y>
+      <width>131</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>9</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>Polygon Clipping</string>
+    </property>
+   </widget>
    <zorder>widget</zorder>
    <zorder>layoutWidget</zorder>
    <zorder>layoutWidget</zorder>
@@ -396,6 +432,8 @@
    <zorder>label_11</zorder>
    <zorder>label_12</zorder>
    <zorder>clip_window</zorder>
+   <zorder>Line_Clipping</zorder>
+   <zorder>Polygon_Clipping</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

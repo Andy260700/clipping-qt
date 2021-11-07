@@ -1,30 +1,33 @@
 #include "grid.h"
 #include <iostream>
-#include<time.h>
-#include<queue>
-#include<unordered_set>
+#include <queue>
+#include <tuple>
+#include <unordered_set>
+#include <algorithm>
+#include<QPoint>
+
 grid::grid(QWidget *parent) : QWidget(parent)
 {
-//    resize(490, 490);
-//    pointsList.push_back(QPoint(5,5));
-//    std::cout << width() << std::endl;
     setMouseTracking(true);
 }
 
-void grid::paintEvent(QPaintEvent *)
+void grid::paintEvent(QPaintEvent *e)
 {
-
+    QWidget::paintEvent(e);
     QPainter painter(this);
+
+
     if(showAxes)
     {
-        QPen axesPen(Qt::white , m_gap);
+        QPen axesPen(Qt::darkGreen, m_gap);
         painter.setPen(axesPen);
         painter.drawLine(0, int(height()/(m_gap*2))*m_gap + m_gap/2, width(), int(height()/(m_gap*2))*m_gap+m_gap/2);
         painter.drawLine(int(width()/(m_gap*2))*m_gap + m_gap/2, 0 , int(width()/(m_gap*2))*m_gap + m_gap/2, height());
     }
+
     if(showGrid)
     {
-        QPen gridpen(Qt::darkGray);
+        QPen gridpen(Qt::lightGray);
         painter.setPen(gridpen);
         for(int i = 0; i < height(); i += m_gap)
         {
@@ -36,137 +39,86 @@ void grid::paintEvent(QPaintEvent *)
         }
     }
 
-            for(auto const& p: pointsList)
-           {
-               QBrush brush = QBrush(p.second);
-    //         QTransform transform = QTransform::fromScale(1, 2);
-//               QPoint newP = p.first * transform;
-               setPixel(p.first.x(), p.first.y(), painter, brush);
-           }
-
-
-
-
-//    for(auto const& l : lineList){
-//        if(algo=="DDA_Line")
-//            dda(l, painter);
-//        else
-//            bresenham(l.p1().x(), l.p1().y(), l.p2().x(), l.p2().y(),painter);
-//    }
-
-//    for(auto const& c : circleList){
-//        if(algo=="Polar_Circle")
-//            polar_circle(c.first,c.second,painter);
-//        else
-//            midpoint_circle(c.first,c.second,painter);
-//    }
-//    for(auto const& e : ellipseList){
-//        polar_ellipse(e.first, e.second.first, e.second.second, painter);
-//    }
-//    for(auto const& p:flood_fill){
-//        floodfill(p.x(),p.y(),painter);
-//    }
-}
-
-grid::~grid() {}
-
-int grid::getGap() const
-{
-    return m_gap;
-}
-QString grid::getAlgo()
-{
-    return algo;
-}
-void grid::setGap(int gap)
-{
-    m_gap = gap;
-    update();
-}
-void grid::setAlgo(const QString &arg1){
-    algo = arg1;
-}
-void grid::addPolygon(list<QPoint> polygon)
-{
-    polygons.push_front(polygon);
-}
-void delay(int msecs)
-{
-    QTime dieTime = QTime::currentTime().addMSecs(msecs);
-    while(QTime::currentTime() < dieTime)
+    if(polygon_clip)
     {
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+       std::list<QPoint> p_list;
+       std::list<QPoint> rect_list;
+       dda_for_transform(rect_list,QLine(clip_frame.bottomLeft(),clip_frame.topLeft()));
+       dda_for_transform(rect_list,QLine(clip_frame.topLeft(),clip_frame.topRight()));
+       dda_for_transform(rect_list,QLine(clip_frame.topRight(),clip_frame.bottomRight()));
+       dda_for_transform(rect_list,QLine(clip_frame.bottomLeft(),clip_frame.bottomRight()));
+
+       for(QLine l: polygon_lines)
+           dda_for_transform(p_list,l);
+
+       for(auto const& p:rect_list)
+       {
+           setPixel(p.x(), p.y(), Qt::green, painter);
+       }
+
+       for(auto const& p:p_list)
+       {
+           setPixel(p.x(), p.y(), Qt::darkBlue, painter);
+       }
     }
-}
-void grid::setPixel(int x, int y, QPainter& painter, QBrush brush)
-{
-    int x1 = (int(width()/(m_gap*2))*m_gap  + x * m_gap);
-    int y1 = (-y * m_gap + int(height()/(m_gap*2))*m_gap);
-    painter.fillRect(x1, y1, m_gap, m_gap, brush);
-}
 
-QColor grid::getPixel(int x, int y)
-{
-    int x1 = (int(width()/(m_gap*2))*m_gap  + x * m_gap);
-    int y1 = (-y * m_gap + int(height()/(m_gap*2))*m_gap);
-    QPixmap pix = grab(QRect(x1, y1, m_gap, m_gap));
-    QImage img(pix.toImage());
-    QColor color(img.pixel(x1,y1));
-    return color;
-}
-void grid::drawPoint(int x, int y, QColor color)
-{
-    pointsList[QPoint(x, y)] = color;
-    update();
-}
-void grid::clear()
-{
-    pointsList.clear();
-    lineList.clear();
-    polygons.clear();
-    update();
-}
+    else if(line_clip)
+    {
+      for(auto const& p:line_clipping_points)
+        {
+            setPixel(p.x(), p.y(), Qt::darkBlue, painter);
+        }
 
-void grid::show_axes(bool cond)
-{
-    showAxes = cond;
-    update();
-}
-void grid::show_grid(bool cond)
-{
-    showGrid = cond;
-    update();
-}
-QPoint grid::convertCoordinate(QPoint q) const{
-    int x = int(q.x())/m_gap - (width()/m_gap)/2;
-    int y = -int(q.y())/m_gap + (height()/m_gap)/2;
-    return QPoint(x,y);
-}
-void grid:: addLine(QLine line){
-    lineList.push_back(line);
-    update();
-}
-void grid:: addFill(QPoint point){
-    flood_fill.push_back(point);
-    update();
-}
-void grid::mouseMoveEvent(QMouseEvent *ev)
-{
-    QPoint mouse_pos=ev->pos();
-    if(mouse_pos.x()<=this->size().width() && mouse_pos.y()<=this->size().height()){
-        if(mouse_pos.x()>0 && mouse_pos.y()>0){
-            QPoint mp = convertCoordinate(mouse_pos);
-            emit sendMousePosition(mp);
+
+    }
+
+    else if(perform_trans)
+    {
+        std::list<QPoint> p_list;
+        std::list<QPoint> transformed_vertex;
+
+        for(auto const& p:transformations)
+        {
+            transformed_vertex.push_back(p*transform);
+        }
+
+        QPoint a = transformed_vertex.front();
+        transformed_vertex.push_back(a);
+        int len = transformed_vertex.size();
+        for(int i=0;i<len-1;i++)
+        {
+              QPoint p1 = transformed_vertex.front();
+              transformed_vertex.pop_front();
+              QPoint p2 = transformed_vertex.front();
+              dda_for_transform(p_list,QLine(p1,p2));
+        }
+
+        for(auto const& p:p_list)
+        {
+            setPixel(p.x(), p.y(), Qt::green, painter);
+        }
+
+    }
+
+    else
+    {
+        for(auto const& [p, color]: pointsList)
+        {
+            setPixel(p.x(), p.y(), color, painter);
         }
     }
+
+    perform_trans = false;
+    line_clip = false;
+    polygon_clip = false;
 }
 
-void grid::dda(QLine const&l, list<QPoint>& p) const
+void grid::dda(QLine const& l)
 {
     int dx = l.p2().x() - l.p1().x();
     int dy = l.p2().y() - l.p1().y();
 
-    int steps = max(abs(dx), abs(dy));
+    int steps = std::max(abs(dx), abs(dy));
 
     double xinc = dx / (double) steps;
     double yinc = dy / (double) steps;
@@ -176,82 +128,18 @@ void grid::dda(QLine const&l, list<QPoint>& p) const
     double y = l.p1().y();
     for (int i = 0; i <= steps; i++)
     {
-        p.push_back(QPoint(round(x),round(y)));
+        pointsList[QPoint(round(x),round(y))] = Qt::green;
         x += xinc;
         y += yinc;
     }
 }
 
-
-
-void grid:: bresenham(int x1, int y1, int x2, int y2 )
+void grid::dda_for_transform(std::list<QPoint>& p_list,QLine const& l)
 {
-//    time_t start,end;
-//    time(&start);
-    QElapsedTimer clock = QElapsedTimer();
-    clock.start();
-    qint64 start = clock.nsecsElapsed();
-            int dx=x2-x1;
-            int dy=y2-y1;
-
-            int xinc=(dx>0)?1:-1;
-            int yinc=(dy>0)?1:-1;
-
-            dx=abs(dx);
-            dy=abs(dy);
-
-            if(dx>dy)
-            {
-                int p=2*(dy)-dx;
-                int y=y1;
-
-                for(int x=x1; x!=x2; x+=xinc)
-                {
-//                    setPixel(x, y, painter);
-                    pointsList[QPoint(x,y)]=QColor(Qt::yellow);
-                    if(p>=0)
-                    {
-                        y+=yinc;
-                        p-=2*dx;
-                    }
-                    p+=2*dy;
-                }
-            }
-            else
-            {
-                int p=2*(dx)-dy;
-                int x=x1;
-
-                for(int y=y1; y!=y2; y+=yinc)
-                {
-//                    setPixel(x, y, painter);
-                    pointsList[QPoint(x,y)]=QColor(Qt::yellow);
-                    if(p>=0)
-                    {
-                        x+=xinc;
-                        p-=2*(dy);
-                    }
-                    p+=2*(dx);
-                }
-            }
-//      time(&end);
-      setTime(double(clock.nsecsElapsed()-start));
-      clock.invalidate();
-      update();
-}
-void grid::setTime(double t){
-    ex_time = t;
-    emit showTime(t);
-}
-void grid::dda(QLine const& l )
-{
-    QElapsedTimer clock = QElapsedTimer();
-    clock.start();
-    qint64 start = clock.nsecsElapsed();
     int dx = l.p2().x() - l.p1().x();
     int dy = l.p2().y() - l.p1().y();
 
-    int steps = max(abs(dx), abs(dy));
+    int steps = std::max(abs(dx), abs(dy));
 
     double xinc = dx / (double) steps;
     double yinc = dy / (double) steps;
@@ -261,15 +149,61 @@ void grid::dda(QLine const& l )
     double y = l.p1().y();
     for (int i = 0; i <= steps; i++)
     {
-//        setPixel(round(x),round(y), painter);
-        pointsList[QPoint(round(x),round(y))]=QColor(Qt::yellow);
+        p_list.push_back(QPoint(x,y));
         x += xinc;
         y += yinc;
     }
-//   time(&end);
-     setTime(double((clock.nsecsElapsed()-start)*1.1));
-     clock.invalidate();
-     update();
+}
+
+void grid::bresenham(QLine const& l)
+{
+    int x1=l.p1().x();
+    int y1=l.p1().y();
+
+    int x2=l.p2().x();
+    int y2=l.p2().y();
+
+    int dx=x2-x1;
+    int dy=y2-y1;
+
+    int xinc=(dx>0)?1:-1;
+    int yinc=(dy>0)?1:-1;
+
+    dx=abs(dx);
+    dy=abs(dy);
+
+    if(dx>dy)
+    {
+        int p=2*(dy)-dx;
+        int y=y1;
+
+        for(int x=x1; x!=x2; x+=xinc)
+        {
+            pointsList[QPoint(x, y)] = Qt::green;
+            if(p>=0)
+            {
+                y+=yinc;
+                p-=2*dx;
+            }
+            p+=2*dy;
+        }
+    }
+    else
+    {
+        int p=2*(dx)-dy;
+        int x=x1;
+
+        for(int y=y1; y!=y2; y+=yinc)
+        {
+            pointsList[QPoint(x, y)] = Qt::green;
+            if(p>=0)
+            {
+                x+=xinc;
+                p-=2*(dy);
+            }
+            p+=2*(dx);
+        }
+    }
 }
 
 void grid::dda_for_line_clipping(QLine const& l)
@@ -293,6 +227,210 @@ void grid::dda_for_line_clipping(QLine const& l)
     }
 }
 
+void delay(int msecs)
+{
+    QTime dieTime = QTime::currentTime().addMSecs(msecs);
+    while(QTime::currentTime() < dieTime)
+    {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+    }
+}
+
+grid::~grid() {}
+
+int grid::getGap() const
+{
+    return m_gap;
+}
+void grid::setGap(int gap)
+{
+    m_gap = gap;
+    update();
+}
+
+void grid::setLineAlgo(LineAlgorithm a)
+{
+    lineAlgo = a;
+}
+
+void grid::setPixel(int x, int y, QColor color ,QPainter& painter)
+{
+    QBrush brush(color);
+    int x1 = (int(width()/(m_gap*2))*m_gap  + x * m_gap);
+    int y1 = (-y * m_gap + int(height()/(m_gap*2))*m_gap);
+    painter.fillRect(x1, y1, m_gap, m_gap, brush);
+}
+
+void grid::drawPoint(int x, int y)
+{
+    pointsList[QPoint(x, y)] = Qt::green;
+    update();
+}
+void grid::clear()
+{
+    pointsList.clear();
+    emit sendTime(0);
+    transform = QTransform::fromScale(1, 1);
+    line_clipping_points.clear();
+    transformations.clear();
+    polygon_lines.clear();
+    update();
+}
+
+void grid::show_axes(bool cond)
+{
+    showAxes = cond;
+    update();
+}
+void grid::show_grid(bool cond)
+{
+    showGrid = cond;
+    update();
+}
+
+void grid::addTransformation(std::list<QPoint> polygon)
+{
+    transformations = polygon;
+}
+
+void grid::bresenham_time(QLine const&l)
+{
+    QElapsedTimer timer;
+    timer.start();
+    int x1=l.p1().x();
+    int y1=l.p1().y();
+
+    int x2=l.p2().x();
+    int y2=l.p2().y();
+
+    int dx=x2-x1;
+    int dy=y2-y1;
+
+    int xinc=(dx>0)?1:-1;
+    int yinc=(dy>0)?1:-1;
+
+    dx=abs(dx);
+    dy=abs(dy);
+
+    if(dx>dy)
+    {
+        int p=2*(dy)-dx;
+        int y=y1;
+
+        for(int x=x1; x!=x2; x+=xinc)
+        {
+            //            pointsList.push_back(QPoint(x, y));
+            if(p>=0)
+            {
+                y+=yinc;
+                p-=2*dx;
+            }
+            p+=2*dy;
+        }
+    }
+    else
+    {
+        int p=2*(dx)-dy;
+        int x=x1;
+
+        for(int y=y1; y!=y2; y+=yinc)
+        {
+            //            pointsList.push_back(QPoint(x, y));
+            if(p>=0)
+            {
+                x+=xinc;
+                p-=2*(dy);
+            }
+            p+=2*(dx);
+        }
+    }
+
+    int time = timer.nsecsElapsed();
+    emit sendTime(time);
+}
+
+void grid::dda_time(QLine const&l)
+{
+    QElapsedTimer timer;
+    timer.start();
+    int dx = l.p2().x() - l.p1().x();
+    int dy = l.p2().y() - l.p1().y();
+
+    int steps = std::max(abs(dx), abs(dy));
+
+    double xinc = dx / (double) steps;
+    double yinc = dy / (double) steps;
+
+
+    double x = l.p1().x();
+    double y = l.p1().y();
+    for (int i = 0; i <= steps; i++)
+    {
+        //        pointsList.push_back(QPoint(round(x),round(y)));
+        x += xinc;
+        y += yinc;
+    }
+    int time = timer.nsecsElapsed();
+    emit sendTime(time);
+}
+
+QPoint grid::convertCoordinate(QPoint q) const{
+    int x = int(q.x())/m_gap - (width()/m_gap)/2;
+    int y = -int(q.y())/m_gap + (height()/m_gap)/2;
+    return QPoint(x,y);
+}
+
+void grid::drawLine(QLine line){
+    line_drawn = true;
+    switch(lineAlgo)
+    {
+    case LineAlgorithm::DDA:
+        dda(line);
+        dda_time(line);
+        break;
+
+    case LineAlgorithm::BRESENHAM:
+        bresenham(line);
+        bresenham_time(line);
+    }
+    update();
+    line_drawn = false;
+}
+
+LineAlgorithm grid::getLineAlgorithm()
+{
+    return  this->lineAlgo;
+}
+
+QColor grid::getColor(QPoint& p)
+{
+    if(pointsList.find(p) == pointsList.end()) return Qt::black;
+    return pointsList[p];
+}
+
+void grid::mouseMoveEvent(QMouseEvent *ev)
+{
+    QPoint mouse_pos=ev->pos();
+    if(mouse_pos.x()<=this->size().width() && mouse_pos.y()<=this->size().height()){
+        if(mouse_pos.x()>0 && mouse_pos.y()>0){
+            QPoint mp = convertCoordinate(mouse_pos);
+            emit sendMousePosition(mp);
+        }
+    }
+}
+
+void grid::mousePressEvent(QMouseEvent *ev)
+{
+    QPoint mouse_pos=ev->pos();
+    if(mouse_pos.x()<=this->size().width() && mouse_pos.y()<=this->size().height()){
+        if(mouse_pos.x()>0 && mouse_pos.y()>0){
+            QPoint mp = convertCoordinate(mouse_pos);
+            QColor color = getColor(mp);
+            drawPoint(mp.x(),mp.y());
+            emit mousePressed(mp, color);
+        }
+    }
+}
 
 int grid::get_point_code(QPoint p)
 {
@@ -627,13 +765,13 @@ void grid::bottom_clip()
 }
 
 
-//void grid::draw_rectangle(QPoint lp,int h,int w)
-//{
-//    drawLine(QLine(lp.x(),lp.y(),lp.x()+w,lp.y()) ); //lower_horizontal
-//    drawLine(QLine(lp.x(),lp.y(),lp.x(),lp.y()+h) ); //left-vertical
-//    drawLine(QLine(lp.x(),lp.y()+h,lp.x()+w,lp.y()+h) ); //upper horizontal
-//    drawLine(QLine(lp.x()+w,lp.y(),lp.x()+w,lp.y()+h) ); //right vertical
-//}
+void grid::draw_rectangle(QPoint lp,int h,int w)
+{
+    drawLine(QLine(lp.x(),lp.y(),lp.x()+w,lp.y()) ); //lower_horizontal
+    drawLine(QLine(lp.x(),lp.y(),lp.x(),lp.y()+h) ); //left-vertical
+    drawLine(QLine(lp.x(),lp.y()+h,lp.x()+w,lp.y()+h) ); //upper horizontal
+    drawLine(QLine(lp.x()+w,lp.y(),lp.x()+w,lp.y()+h) ); //right vertical
+}
 
 void grid::polygon_clipping()
 {
@@ -665,23 +803,4 @@ void grid::polygon_clipping()
     update();
 
 //    clip_lines(polygon_lines);
-}
-
-
-
-void grid::mousePressEvent(QMouseEvent *ev)
-{
-//    if(ev->button()==Qt::LeftButton){
-//        this->x=ev->position().x();
-//        this->y=ev->position().y();
-//        emit sendMousePosition(mouse_pos);
-//    }
-    QPoint mouse_pos=ev->pos();
-    if(mouse_pos.x()<=this->size().width() && mouse_pos.y()<=this->size().height()){
-        if(mouse_pos.x()>0 && mouse_pos.y()>0){
-            QPoint mp = convertCoordinate(mouse_pos);
-            drawPoint(mp.x(),mp.y());
-            emit mousePressed(mp);
-        }
-    }
 }
